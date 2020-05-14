@@ -1,6 +1,6 @@
 <?php
 include_once "user.php";
-//include_once "dbconnector.php";
+include_once "dbconnector.php";
 
 $connection = new dbconnector();
 

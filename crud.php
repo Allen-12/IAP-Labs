@@ -2,7 +2,7 @@
 
 interface Crud
 {
-    public function save($conn);
+    public function save($conn,$path);
 
     public static function readAll($conn);
 

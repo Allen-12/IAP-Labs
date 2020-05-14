@@ -1,7 +1,7 @@
 <?php
-include 'crud.php';
-include 'authenticator.php';
-include 'dbconnector.php';
+include_once 'crud.php';
+include_once 'authenticator.php';
+include_once 'dbconnector.php';
 
 class User implements Crud,Authenticator
 {
@@ -11,14 +11,50 @@ class User implements Crud,Authenticator
     private $city_name;
     private $username;
     private $password;
+    private $timestamp;
+    private $offset;
 
-    public function __construct($fname,$lname,$cname,$uname,$pass)
+    public function __construct($fname,$lname,$cname,$uname,$pass,$timestamp,$offset)
     {
         $this->first_name = $fname;
         $this->last_name  = $lname;
         $this->city_name = $cname;
         $this->username = $uname;
         $this->password = $pass;
+        $this->timestamp = $timestamp;
+        $this->offset = $offset;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getTimestamp()
+    {
+        return $this->timestamp;
+    }
+
+    /**
+     * @param mixed $timestamp
+     */
+    public function setTimestamp($timestamp)
+    {
+        $this->timestamp = $timestamp;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getOffset()
+    {
+        return $this->offset;
+    }
+
+    /**
+     * @param mixed $offset
+     */
+    public function setOffset($offset)
+    {
+        $this->offset = $offset;
     }
 
     public static function create()
@@ -75,7 +111,7 @@ class User implements Crud,Authenticator
         $this->password = $password;
     }
 
-    public function save($conn)
+    public function save($conn,$path)
     {
         $fn = $this->first_name;
         $ln = $this->last_name;
@@ -83,17 +119,20 @@ class User implements Crud,Authenticator
         $un = $this->username;
         $this->hashPassword();
         $pass = $this->password;
+        $targetPath = $path;
+        $off = $this->offset;
+        $ts = $this->timestamp;
 
-        $result = mysqli_query($conn,"INSERT INTO user(first_name, last_name, user_city,username,password) 
-                                            VALUES ('$fn','$ln','$cn','$un','$pass')") or die("Error ".mysqli_error());
+        $result = mysqli_query($conn,"INSERT INTO user(first_name, last_name, user_city,username,password,image_path,offset,timestamp) 
+                                            VALUES ('$fn','$ln','$cn','$un','$pass','$targetPath',$off,$ts)") or die("Error ".mysqli_error());
         return $result;
     }
 
-        public static function readAll($conn)
-        {
-            $result = mysqli_query($conn,"SELECT * FROM `user`") or die("Error ".mysqli_error());
-            return $result;
-        }
+    public static function readAll($conn)
+    {
+        $result = mysqli_query($conn,"SELECT * FROM `user`") or die("Error ".mysqli_error());
+        return $result;
+    }
 
     public function readUnique()
     {
@@ -187,5 +226,10 @@ class User implements Crud,Authenticator
         unset($_SESSION['username']);
         session_destroy();
         header("Location:lab1.php");
+    }
+
+    public function isUserExist()
+    {
+        
     }
 }

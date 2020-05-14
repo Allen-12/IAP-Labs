@@ -1,6 +1,7 @@
 <?php
-//    include_once 'dbconnector.php';
+    include_once 'dbconnector.php';
     include_once 'user.php';
+    include_once 'fileUploader.php';
 
     $connection = new dbconnector();
 
@@ -11,32 +12,57 @@
         $city_name = $_POST['city_name'];
         $username = $_POST['user_name'];
         $password = $_POST['password'];
+        $timestamp = $_POST['utcTimestamp'];
+        $offset = $_POST['timeZoneOffset'];
 
-        $user = new User($first_name,$last_name,$city_name,$username,$password);
+//       Get the name of the file selected, the size and the file type
+        $imageName = $_FILES['fileToUpload']['name'];
+        $imageTmp = $_FILES['fileToUpload']['tmp_name'];
+        $imageSize = $_FILES['fileToUpload']['size'];
+        $imageType = $_FILES['fileToUpload']['type'];
+
+        $user = new User($first_name,$last_name,$city_name,$username,$password,$timestamp,$offset);
+        $uploader = new FileUploader($imageName,$imageTmp,$imageSize,$imageType);
+
+        if($uploader->uploadFile())
+        {
+            echo "<script>alert(\"Image uploaded successfully!\")</script>";
+        }
+
         if (!$user->validateForm())
         {
             $user->createFormErrorSessions();
             header("Refresh:0");
             die();
         }
-        $result = $user->save($connection->conn);
-        $users = $user->readAll($connection->conn)->fetch_assoc();
+
+        $users = $user->readAll($connection->conn);
+
+        if ($users->num_rows >0)
+        {
+            while ($row=$users->fetch_assoc())
+            {
+                if($row['username'] == $username)
+                {
+                    echo "<script>alert(\"Username already exists!\")</script>";
+                    header("Refresh:0");
+                    die();
+                }
+            }
+        }
+
+        $targetPath = $uploader::getTargetDirectory().$uploader->getFileOriginalName();
+        $result = $user->save($connection->conn,$targetPath);
 
         if($result)
         {
-            echo 'Save operation successful!!';
+            echo "<script>alert(\"User account created successfully!\")</script>";
             $connection->closeConnection();
         }
         else
         {
             echo 'An Error occurred.';
-        }
-
-//        print_r($users);
-
-        foreach ($users as $user)
-        {
-
+            echo '<br>';
         }
     }
 ?>
@@ -50,10 +76,12 @@
         <link rel="stylesheet" href="lab1.css">
         <link rel="stylesheet" type="text/css" href="validate.css">
         <script type="text/javascript" src="validate.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src="timezone.js"></script>
         <title>Lab 1</title>
     </head>
     <body>
-    <form method="post" name="user_details" id="user_details" onsubmit="return validateForm()" action="<?=$_SERVER['PHP_SELF']?>">
+    <form method="post" enctype="multipart/form-data" name="user_details" id="user_details" onsubmit="return validateForm()" action="<?=$_SERVER['PHP_SELF']?>">
         <table align="center">
             <tr>
                 <td>
@@ -90,8 +118,14 @@
                 <td><input type="password" name="password" id="password"></td>
             </tr>
             <tr>
+                <td><label for="fileToUpload">Profile Picture</label></td>
+                <td><input type="file" name="fileToUpload" id="fileToUpload"></td>
+            </tr>
+            <tr>
                 <td><button type="submit" name="btn_save"><strong>SAVE</strong></button></td>
             </tr>
+            <input type="hidden" name="utcTimestamp" id="utcTimestamp">
+            <input type="hidden" name="timeZoneOffset" id="timeZoneOffset">
             <tr>
                 <a href="login.php">Login</a>
             </tr>
